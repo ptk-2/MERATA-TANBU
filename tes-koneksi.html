@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <title>Tes Koneksi Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; display: grid; place-content: center; min-height: 100vh; font-size: 1.5rem; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div id="status">Mencoba terhubung...</div>
+
+    <script>
+        const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        const statusDiv = document.getElementById('status');
+
+        async function testConnection() {
+            try {
+                // Mencoba mengambil 1 data saja dari tabel 'sekolah'
+                const { data, error } = await supabaseClient
+                    .from('sekolah')
+                    .select('id')
+                    .limit(1);
+
+                if (error) {
+                    console.error(error);
+                    statusDiv.className = 'error';
+                    statusDiv.textContent = `Koneksi GAGAL: ${error.message}`;
+                } else {
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = 'Koneksi BERHASIL! Data ditemukan.';
+                }
+            } catch (e) {
+                console.error(e);
+                statusDiv.className = 'error';
+                statusDiv.textContent = `Terjadi error JavaScript: ${e.message}`;
+            }
+        }
+
+        // Jalankan tes
+        testConnection();
+    </script>
+</body>
+</html>
