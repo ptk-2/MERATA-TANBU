@@ -25,7 +25,7 @@
         <h4 class="text-center mb-4">Admin Panel</h4>
         <ul class="nav flex-column">
             <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
+            <li class="nav-item"><a class="nav-link" href="persetujuan.html"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
             <li class="nav-item"><a class="nav-link active" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
             <li class="nav-item"><a class="nav-link" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
             <li class="nav-item"><a class="nav-link" href="periode.html"><i class="bi bi-calendar-range"></i>Kelola Periode</a></li>
@@ -117,6 +117,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Pengecekan status login admin
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            alert('Anda harus login terlebih dahulu untuk mengakses halaman ini!');
+            window.location.href = 'login.html';
+        }
+
         const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);

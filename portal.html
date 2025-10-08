@@ -23,27 +23,35 @@
                     <input type="text" class="form-control form-control-lg text-center" id="login-npsn" placeholder="Masukkan NPSN Unit Kerja Anda...">
                 </div>
                 <button class="btn btn-primary w-100" id="btn-cari-npsn">Cek Unit Kerja</button>
+                
                 <div id="pegawai-selection" class="mt-4" style="display: none;">
                     <hr>
                     <p class="text-muted">Unit kerja terverifikasi. Silakan pilih nama Anda.</p>
-                    <div class="input-group">
-                        <select class="form-select form-select-lg" id="nama-pegawai-select"></select>
-                        <button class="btn btn-success" id="btn-masuk">Lihat Lowongan</button>
-                    </div>
+                    <select class="form-select form-select-lg" id="nama-pegawai-select"></select>
                 </div>
+
+                <div id="edit-nama-section" class="mt-4" style="display: none;">
+                    <hr>
+                    <p class="text-muted">Periksa kembali nama lengkap Anda. Anda bisa menambahkan gelar jika perlu.</p>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-lg" id="nama-pegawai-edit">
+                    </div>
+                    <button class="btn btn-success w-100" id="btn-simpan-masuk">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                        Simpan & Masuk
+                    </button>
+                </div>
+
                 <div id="login-feedback" class="form-text text-danger mt-2"></div>
             </div>
         </div>
     </div>
     <script>
-        // --- SCRIPT UTAMA DIMULAI SETELAH HALAMAN SIAP ---
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // Langkah 1: Pengecekan Library Supabase
             if (typeof supabase === 'undefined') {
                 alert('ERROR Kritis: Library Supabase gagal dimuat. Periksa koneksi internet Anda atau coba muat ulang halaman.');
                 document.getElementById('login-feedback').textContent = 'Gagal memuat komponen inti aplikasi. Periksa koneksi internet.';
-                return; // Hentikan eksekusi jika library tidak ada
+                return;
             }
 
             const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
@@ -54,43 +62,47 @@
             const npsnInput = document.getElementById('login-npsn');
             const pegawaiSelection = document.getElementById('pegawai-selection');
             const namaPegawaiSelect = document.getElementById('nama-pegawai-select');
-            const btnMasuk = document.getElementById('btn-masuk');
             const loginFeedback = document.getElementById('login-feedback');
             
+            // Variabel untuk elemen baru
+            const editNamaSection = document.getElementById('edit-nama-section');
+            const namaPegawaiEditInput = document.getElementById('nama-pegawai-edit');
+            const btnSimpanMasuk = document.getElementById('btn-simpan-masuk');
+
             btnCariNpsn.addEventListener('click', async () => {
-                const npsn = npsnInput.value.trim();
-                if (!npsn) { loginFeedback.textContent = 'NPSN tidak boleh kosong.'; return; }
+                npsnInput.disabled = true; // Nonaktifkan input saat mencari
+                btnCariNpsn.disabled = true;
                 loginFeedback.textContent = 'Memverifikasi...';
                 pegawaiSelection.style.display = 'none';
+                editNamaSection.style.display = 'none';
 
                 try {
-                    const { data: periode, error: periodeError } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
-                    if (periodeError || !periode) throw new Error('Saat ini tidak ada periode pemetaan yang aktif.');
+                    const npsn = npsnInput.value.trim();
+                    if (!npsn) throw new Error('NPSN tidak boleh kosong.');
                     
-                    const { data: sekolah, error: sekolahError } = await supabaseClient.from('sekolah').select('id, nama_sekolah').eq('npsn', npsn).single();
-                    if (sekolahError || !sekolah) throw new Error('NPSN unit kerja tidak ditemukan.');
+                    const { data: periode } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
+                    if (!periode) throw new Error('Saat ini tidak ada periode pemetaan yang aktif.');
+                    
+                    const { data: sekolah } = await supabaseClient.from('sekolah').select('id, nama_sekolah').eq('npsn', npsn).single();
+                    if (!sekolah) throw new Error('NPSN unit kerja tidak ditemukan.');
 
-                    const { data: kelebihan, error: kelebihanError } = await supabaseClient.from('kelebihan_pegawai').select('id', { count: 'exact' }).eq('id_sekolah', sekolah.id).eq('id_periode', periode.id);
-                    if (kelebihanError || kelebihan.length === 0) throw new Error('Unit kerja ini tidak terdata memiliki kelebihan pegawai pada periode ini.');
+                    const { data: kelebihan } = await supabaseClient.from('kelebihan_pegawai').select('id').eq('id_sekolah', sekolah.id).eq('id_periode', periode.id).limit(1);
+                    if (!kelebihan || kelebihan.length === 0) throw new Error('Unit kerja ini tidak terdata memiliki kelebihan pegawai pada periode ini.');
                     
-                    const { data: appliedPegawaiIds, error: appliedError } = await supabaseClient.from('aplikasi_penempatan').select('id_pegawai').eq('id_periode', periode.id);
-                    if (appliedError) throw appliedError;
+                    const { data: appliedPegawaiIds } = await supabaseClient.from('aplikasi_penempatan').select('id_pegawai').eq('id_periode', periode.id);
                     const appliedIds = appliedPegawaiIds.map(item => item.id_pegawai);
 
                     const query = supabaseClient.from('pegawai').select('id, nama').eq('id_sekolah', sekolah.id);
                     if (appliedIds.length > 0) {
                         query.not('id', 'in', `(${appliedIds.join(',')})`);
                     }
-                    const { data: pegawaiList, error: pegawaiError } = await query;
-                    if(pegawaiError) throw pegawaiError;
-                    
+                    const { data: pegawaiList } = await query;
                     if (!pegawaiList || pegawaiList.length === 0) throw new Error('Semua pegawai di unit kerja ini sudah mengajukan permohonan.');
                     
-                    namaPegawaiSelect.innerHTML = '<option selected disabled>Pilih Nama Anda...</option>';
+                    namaPegawaiSelect.innerHTML = '<option selected disabled value="">Pilih Nama Anda...</option>';
                     pegawaiList.forEach(p => {
                         const option = document.createElement('option');
                         option.value = p.id;
-                        option.dataset.nama = p.nama;
                         option.textContent = p.nama;
                         namaPegawaiSelect.appendChild(option);
                     });
@@ -98,20 +110,64 @@
                     sessionStorage.setItem('sekolahNama', sekolah.nama_sekolah);
                     loginFeedback.textContent = '';
                     pegawaiSelection.style.display = 'block';
+
                 } catch (error) {
                     loginFeedback.textContent = error.message;
-                    console.error(error);
+                } finally {
+                    npsnInput.disabled = false;
+                    btnCariNpsn.disabled = false;
                 }
             });
 
-            btnMasuk.addEventListener('click', () => {
+            // Event listener saat nama dipilih
+            namaPegawaiSelect.addEventListener('change', () => {
                 const selectedOption = namaPegawaiSelect.options[namaPegawaiSelect.selectedIndex];
-                if (selectedOption.disabled) { loginFeedback.textContent = 'Anda harus memilih nama.'; return; }
+                if (selectedOption.disabled) {
+                    editNamaSection.style.display = 'none';
+                    return;
+                }
+                namaPegawaiEditInput.value = selectedOption.textContent;
+                editNamaSection.style.display = 'block';
+            });
+
+            // Event listener untuk tombol Simpan & Masuk
+            btnSimpanMasuk.addEventListener('click', async () => {
+                const spinner = btnSimpanMasuk.querySelector('.spinner-border');
+                const idPegawai = namaPegawaiSelect.value;
+                const namaBaru = namaPegawaiEditInput.value.trim();
+
+                if (!idPegawai) {
+                    loginFeedback.textContent = 'Silakan pilih nama Anda terlebih dahulu.';
+                    return;
+                }
+                if (!namaBaru) {
+                    loginFeedback.textContent = 'Nama tidak boleh kosong.';
+                    return;
+                }
                 
-                sessionStorage.setItem('idPegawai', selectedOption.value);
-                sessionStorage.setItem('namaPegawai', selectedOption.dataset.nama);
+                btnSimpanMasuk.disabled = true;
+                spinner.style.display = 'inline-block';
+                loginFeedback.textContent = '';
                 
-                window.location.href = 'index.html';
+                try {
+                    // Update nama di database
+                    const { error } = await supabaseClient
+                        .from('pegawai')
+                        .update({ nama: namaBaru })
+                        .eq('id', idPegawai);
+
+                    if (error) throw error;
+
+                    // Simpan data ke session dan lanjutkan
+                    sessionStorage.setItem('idPegawai', idPegawai);
+                    sessionStorage.setItem('namaPegawai', namaBaru);
+                    window.location.href = 'index.html';
+
+                } catch (error) {
+                    loginFeedback.textContent = `Gagal menyimpan nama: ${error.message}`;
+                    btnSimpanMasuk.disabled = false;
+                    spinner.style.display = 'none';
+                }
             });
         });
     </script>

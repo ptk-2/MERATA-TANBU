@@ -47,6 +47,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>Nama Pemohon</th>
+                            <th>Jabatan Asal</th>
                             <th>Unit Kerja Asal</th>
                             <th>Lowongan yang Dipilih</th>
                             <th class="text-center">Berkas</th>
@@ -55,7 +56,7 @@
                         </tr>
                     </thead>
                     <tbody id="persetujuan-table-body">
-                        <tr><td colspan="6" class="text-center">Memuat data permohonan...</td></tr>
+                        <tr><td colspan="7" class="text-center">Memuat data permohonan...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -67,6 +68,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Pengecekan status login admin
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            alert('Anda harus login terlebih dahulu untuk mengakses halaman ini!');
+            window.location.href = 'login.html';
+        }
+
         const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
@@ -74,9 +81,8 @@
         const tableBody = document.getElementById('persetujuan-table-body');
 
         async function getPermohonan() {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Memuat data permohonan...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Memuat data permohonan...</td></tr>';
             
-            // Mengambil data dari 3 tabel sekaligus: aplikasi, pegawai (dan sekolah asalnya), dan kekurangan (dan sekolah tujuannya)
             const { data, error } = await supabaseClient
                 .from('aplikasi_penempatan')
                 .select(`
@@ -84,26 +90,28 @@
                     status_aplikasi,
                     url_surat_permohonan,
                     url_surat_rekomendasi,
-                    pegawai:pegawai ( nama, sekolah:sekolah (nama_sekolah) ),
+                    pegawai:pegawai ( nama, jabatan, sekolah:sekolah (nama_sekolah) ),
                     lowongan:kekurangan_pegawai ( jabatan, sekolah:sekolah (nama_sekolah) )
                 `)
                 .order('id', { ascending: false });
 
             if (error) {
                 console.error(error);
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Gagal memuat data.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Gagal memuat data.</td></tr>`;
                 return;
             }
             if (data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center">Belum ada data permohonan masuk.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center">Belum ada data permohonan masuk.</td></tr>`;
                 return;
             }
 
             tableBody.innerHTML = ''; 
             data.forEach(item => {
+                const statusBadge = item.status_aplikasi === 'Menunggu Persetujuan' ? 'bg-warning' : (item.status_aplikasi === 'Disetujui' ? 'bg-success' : 'bg-danger');
                 const row = `
                     <tr>
                         <td><strong>${item.pegawai.nama}</strong></td>
+                        <td>${item.pegawai.jabatan || '-'}</td>
                         <td>${item.pegawai.sekolah.nama_sekolah}</td>
                         <td>
                             <strong>${item.lowongan.jabatan}</strong>
@@ -113,10 +121,10 @@
                             <a href="${item.url_surat_permohonan || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Permohonan"><i class="bi bi-file-earmark-pdf"></i></a>
                             <a href="${item.url_surat_rekomendasi || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Rekomendasi"><i class="bi bi-file-earmark-pdf"></i></a>
                         </td>
-                        <td class="text-center"><span class="badge bg-warning">${item.status_aplikasi}</span></td>
+                        <td class="text-center"><span class="badge ${statusBadge}">${item.status_aplikasi}</span></td>
                         <td class="text-center">
-                            <button class="btn btn-success btn-sm" title="Setujui"><i class="bi bi-check-lg"></i></button>
-                            <button class="btn btn-danger btn-sm" title="Tolak"><i class="bi bi-x-lg"></i></button>
+                            <button class="btn btn-success btn-sm btn-approve" data-id="${item.id}" title="Setujui"><i class="bi bi-check-lg"></i></button>
+                            <button class="btn btn-danger btn-sm btn-reject" data-id="${item.id}" title="Tolak"><i class="bi bi-x-lg"></i></button>
                         </td>
                     </tr>
                 `;
@@ -124,6 +132,41 @@
             });
         }
         
+        // --- BLOK KODE BARU UNTUK FUNGSI TOMBOL ---
+        tableBody.addEventListener('click', async (event) => {
+            const target = event.target.closest('button');
+
+            // Fungsi untuk update status
+            const updateStatus = async (id, newStatus) => {
+                const { error } = await supabaseClient
+                    .from('aplikasi_penempatan')
+                    .update({ status_aplikasi: newStatus })
+                    .eq('id', id);
+
+                if (error) {
+                    alert(`Gagal memperbarui status: ${error.message}`);
+                } else {
+                    getPermohonan(); // Muat ulang data tabel
+                }
+            };
+
+            // Cek jika tombol Setujui yang diklik
+            if (target && target.classList.contains('btn-approve')) {
+                const id = target.dataset.id;
+                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini?')) {
+                    await updateStatus(id, 'Disetujui');
+                }
+            }
+
+            // Cek jika tombol Tolak yang diklik
+            if (target && target.classList.contains('btn-reject')) {
+                const id = target.dataset.id;
+                if (confirm('Anda yakin ingin MENOLAK permohonan ini?')) {
+                    await updateStatus(id, 'Ditolak');
+                }
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', getPermohonan);
         document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); sessionStorage.clear(); window.location.href = 'login.html'; });
     </script>

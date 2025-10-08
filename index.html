@@ -302,7 +302,8 @@
                     tmt_sk: tmtSk,
                     url_surat_permohonan: urlData1.publicUrl,
                     url_surat_rekomendasi: urlData2.publicUrl,
-                    id_periode: activePeriode.id
+                    id_periode: activePeriode.id,
+                    status_aplikasi: 'Menunggu Persetujuan' // <-- TAMBAHKAN BARIS INI
                 };
                 console.log("Data yang akan dikirim ke Supabase:", dataToInsert);
                 
@@ -330,6 +331,10 @@
                 window.location.href = 'portal.html';
                 return;
             }
+            // --- BAGIAN YANG DIPERBAIKI ---
+            loginGate.style.display = 'none';
+            mainDashboard.style.display = 'block';
+            
             userInfo.innerHTML = `Halo, <strong>${namaPegawai}</strong> dari <span class="text-white-50">${sekolahNama}</span>`;
             userInfo.style.display = 'block';
             loadInitialData();
