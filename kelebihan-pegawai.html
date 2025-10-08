@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kekurangan Pegawai - Admin Dashboard</title>
+    <title>Kelebihan Pegawai - Admin Dashboard</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -26,8 +26,8 @@
         <ul class="nav flex-column">
             <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
-            <li class="nav-item"><a class="nav-link active" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
-            <li class="nav-item"><a class="nav-link" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link active" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
             <li class="nav-item"><a class="nav-link" href="periode.html"><i class="bi bi-calendar-range"></i>Kelola Periode</a></li>
             <li class="nav-item"><a class="nav-link" href="kelola-pegawai.html"><i class="bi bi-people"></i>Kelola Pegawai</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" href="login.html" id="logout-button"><i class="bi bi-box-arrow-left"></i>Logout</a></li>
@@ -37,10 +37,10 @@
     <div class="content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1>Data Kekurangan Pegawai</h1>
+                <h1>Data Kelebihan Pegawai</h1>
                 <h5 class="text-muted" id="periode-info">Memuat periode aktif...</h5>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pegawaiModal" id="btn-tambah-data" disabled>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#surplusModal" id="btn-tambah-data" disabled>
                 <i class="bi bi-plus-circle"></i> Tambah Data
             </button>
         </div>
@@ -53,12 +53,11 @@
                             <th>Nama Sekolah</th>
                             <th>Kecamatan</th>
                             <th>Jabatan</th>
-                            <th class="text-center">Jumlah</th>
-                            <th class="text-center">Status</th>
+                            <th class="text-center">Jumlah Kelebihan</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="pegawai-table-body">
+                    <tbody id="surplus-table-body">
                         </tbody>
                 </table>
             </div>
@@ -67,15 +66,15 @@
         <footer class="text-center mt-5"><hr><p>&copy; 2025 Dinas Pendidikan Kabupaten Tanah Bumbu.</p></footer>
     </div>
     
-    <div class="modal fade" id="pegawaiModal" tabindex="-1">
+    <div class="modal fade" id="surplusModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="pegawaiModalLabel">Tambah Data Kekurangan</h5>
+                    <h5 class="modal-title" id="surplusModalLabel">Tambah Data Kelebihan Pegawai</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="pegawai-form">
+                    <form id="surplus-form">
                         <input type="hidden" id="id-sekolah">
                         <div class="mb-3">
                             <label for="npsn" class="form-label"><b>Langkah 1:</b> Masukkan NPSN Sekolah</label>
@@ -87,13 +86,12 @@
                         </div>
                         <hr>
                         <div id="form-step-2">
-                            <p class="form-label"><b>Langkah 2:</b> Lengkapi Detail Lowongan</p>
+                            <p class="form-label"><b>Langkah 2:</b> Lengkapi Detail Kelebihan</p>
                             <fieldset disabled>
-                                <div class="mb-3"><label for="nama-sekolah-readonly" class="form-label">Nama Sekolah</label><input type="text" class="form-control" id="nama-sekolah-readonly"></div>
-                                <div class="mb-3"><label for="kecamatan-readonly" class="form-label">Kecamatan</label><input type="text" class="form-control" id="kecamatan-readonly"></div>
+                                <div class="mb-3"><label class="form-label">Nama Sekolah</label><input type="text" class="form-control" id="nama-sekolah-readonly"></div>
                             </fieldset>
                             <div class="mb-3">
-                                <label for="jabatan" class="form-label">Jabatan</label>
+                                <label for="jabatan" class="form-label">Jabatan yang Berlebih</label>
                                 <select class="form-select" id="jabatan" required>
                                     <option value="" selected disabled>Pilih Jabatan...</option>
                                     <option value="Guru Kelas">Guru Kelas</option>
@@ -102,13 +100,16 @@
                                     <option value="Penjaga Sekolah">Penjaga Sekolah</option>
                                 </select>
                             </div>
-                            <div class="mb-3"><label for="jumlah-dibutuhkan" class="form-label">Jumlah Dibutuhkan</label><input type="number" class="form-control" id="jumlah-dibutuhkan" required value="1"></div>
+                            <div class="mb-3">
+                                <label for="jumlah-kelebihan" class="form-label">Jumlah Kelebihan</label>
+                                <input type="number" class="form-control" id="jumlah-kelebihan" required value="1">
+                            </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary" form="pegawai-form" id="btn-simpan">Simpan</button>
+                    <button type="submit" class="btn btn-primary" form="surplus-form" id="btn-simpan">Simpan</button>
                 </div>
             </div>
         </div>
@@ -121,11 +122,11 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
         
-        const pegawaiForm = document.getElementById('pegawai-form');
-        const pegawaiModal = new bootstrap.Modal(document.getElementById('pegawaiModal'));
+        const surplusForm = document.getElementById('surplus-form');
+        const surplusModal = new bootstrap.Modal(document.getElementById('surplusModal'));
         const btnTambahData = document.getElementById('btn-tambah-data');
         const periodeInfo = document.getElementById('periode-info');
-        const tableBody = document.getElementById('pegawai-table-body');
+        const tableBody = document.getElementById('surplus-table-body');
         const formStep2 = document.getElementById('form-step-2');
         const btnCekNpsn = document.getElementById('btn-cek-npsn');
         let activePeriode = null;
@@ -136,22 +137,24 @@
                 activePeriode = data;
                 periodeInfo.textContent = `Periode Aktif: ${activePeriode.nama_periode} (${activePeriode.tahun})`;
                 btnTambahData.disabled = false;
-                getKekuranganPegawai();
+                getKelebihanPegawai();
             } else {
-                periodeInfo.innerHTML = `Tidak ada periode aktif. Silakan <a href="periode.html">buat atau aktifkan</a> periode terlebih dahulu.`;
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center">Pilih periode aktif untuk melihat data.</td></tr>`;
+                periodeInfo.innerHTML = `Tidak ada periode aktif. Silakan <a href="periode.html">buat atau aktifkan</a> periode.`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Pilih periode aktif untuk melihat data.</td></tr>`;
             }
         }
 
-        async function getKekuranganPegawai() {
+        async function getKelebihanPegawai() {
             if (!activePeriode) return;
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Memuat data...</td></tr>';
-            const { data, error } = await supabaseClient.from('kekurangan_pegawai').select(`*, sekolah(*)`).eq('id_periode', activePeriode.id).order('id', { ascending: false });
-            if (error) { tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Gagal memuat data.</td></tr>`; return; }
-            if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="6" class="text-center">Belum ada data kekurangan untuk periode ini.</td></tr>`; return; }
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Memuat data...</td></tr>';
+            const { data, error } = await supabaseClient.from('kelebihan_pegawai').select(`*, sekolah(*)`).eq('id_periode', activePeriode.id).order('id', { ascending: false });
+            
+            if (error) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Gagal memuat data.</td></tr>`; return; }
+            if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Belum ada data kelebihan pegawai untuk periode ini.</td></tr>`; return; }
+
             tableBody.innerHTML = ''; 
             data.forEach(item => {
-                const row = `<tr><td>${item.sekolah.nama_sekolah}</td><td>${item.sekolah.kecamatan}</td><td>${item.jabatan}</td><td class="text-center">${item.jumlah_dibutuhkan}</td><td class="text-center"><span class="badge bg-info">${item.status}</span></td><td class="text-center"><button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}" title="Hapus"><i class="bi bi-trash"></i></button></td></tr>`;
+                const row = `<tr><td>${item.sekolah.nama_sekolah}</td><td>${item.sekolah.kecamatan}</td><td>${item.jabatan}</td><td class="text-center">${item.jumlah_kelebihan}</td><td class="text-center"><button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}" title="Hapus"><i class="bi bi-trash"></i></button></td></tr>`;
                 tableBody.innerHTML += row;
             });
         }
@@ -160,36 +163,30 @@
             const npsn = document.getElementById('npsn').value.trim();
             const feedbackEl = document.getElementById('npsn-feedback');
             const namaSekolahEl = document.getElementById('nama-sekolah-readonly');
-            const kecamatanEl = document.getElementById('kecamatan-readonly');
             const idSekolahInput = document.getElementById('id-sekolah');
-            if (!npsn) { feedbackEl.textContent = 'NPSN tidak boleh kosong.'; feedbackEl.className = 'form-text text-danger'; return; }
+            if (!npsn) { feedbackEl.textContent = 'NPSN tidak boleh kosong.'; return; }
             feedbackEl.textContent = 'Mencari...';
-            feedbackEl.className = 'form-text text-muted';
             formStep2.style.display = 'none';
             namaSekolahEl.value = '';
-            kecamatanEl.value = '';
             idSekolahInput.value = '';
-            const { data, error } = await supabaseClient.from('sekolah').select('id, nama_sekolah, kecamatan').eq('npsn', npsn).single();
+            const { data, error } = await supabaseClient.from('sekolah').select('id, nama_sekolah').eq('npsn', npsn).single();
             if (data) {
                 feedbackEl.textContent = 'Sekolah ditemukan.';
-                feedbackEl.className = 'form-text text-success';
                 namaSekolahEl.value = data.nama_sekolah;
-                kecamatanEl.value = data.kecamatan;
                 idSekolahInput.value = data.id;
                 formStep2.style.display = 'block';
             } else {
                 feedbackEl.textContent = 'Sekolah dengan NPSN ini tidak ditemukan.';
-                feedbackEl.className = 'form-text text-danger';
             }
         });
         
         document.getElementById('btn-tambah-data').addEventListener('click', () => {
-            pegawaiForm.reset();
+            surplusForm.reset();
             formStep2.style.display = 'none';
             document.getElementById('npsn-feedback').textContent = '';
         });
 
-        pegawaiForm.addEventListener('submit', async (event) => {
+        surplusForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const idSekolah = document.getElementById('id-sekolah').value;
             if (!idSekolah) { alert('Cek NPSN terlebih dahulu hingga sekolah ditemukan.'); return; }
@@ -197,20 +194,19 @@
                 id_sekolah: idSekolah,
                 id_periode: activePeriode.id,
                 jabatan: document.getElementById('jabatan').value,
-                jumlah_dibutuhkan: parseInt(document.getElementById('jumlah-dibutuhkan').value),
-                status: 'Terbuka'
+                jumlah_kelebihan: parseInt(document.getElementById('jumlah-kelebihan').value)
             };
-            const { error } = await supabaseClient.from('kekurangan_pegawai').insert([formData]);
-            if (error) { console.error(error); alert('Gagal menyimpan data!'); } else { pegawaiModal.hide(); getKekuranganPegawai(); }
+            const { error } = await supabaseClient.from('kelebihan_pegawai').insert([formData]);
+            if (error) { console.error(error); alert('Gagal menyimpan data!'); } else { surplusModal.hide(); getKelebihanPegawai(); }
         });
         
-        document.getElementById('pegawai-table-body').addEventListener('click', async (event) => {
+        tableBody.addEventListener('click', async (event) => {
             const target = event.target.closest('button.btn-delete');
             if (target) {
                 const id = target.dataset.id;
-                if (confirm('Anda yakin ingin menghapus data lowongan ini?')) {
-                    const { error } = await supabaseClient.from('kekurangan_pegawai').delete().eq('id', id);
-                    if (error) { alert('Gagal menghapus data!'); } else { getKekuranganPegawai(); }
+                if (confirm('Anda yakin ingin menghapus data ini?')) {
+                    const { error } = await supabaseClient.from('kelebihan_pegawai').delete().eq('id', id);
+                    if (error) { alert('Gagal menghapus data!'); } else { getKelebihanPegawai(); }
                 }
             }
         });

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi - MERATA-TANBU</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-box { max-width: 500px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card p-4 shadow-sm login-box">
+            <div class="card-body text-center">
+                <h3 class="card-title mb-3">Portal Pemilihan Penempatan</h3>
+                <p class="card-text text-muted">Hanya untuk pegawai dari unit kerja yang terdata memiliki kelebihan pegawai.</p>
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-lg text-center" id="login-npsn" placeholder="Masukkan NPSN Unit Kerja Anda...">
+                </div>
+                <button class="btn btn-primary w-100" id="btn-cari-npsn">Cek Unit Kerja</button>
+                <div id="pegawai-selection" class="mt-4" style="display: none;">
+                    <hr>
+                    <p class="text-muted">Unit kerja terverifikasi. Silakan pilih nama Anda.</p>
+                    <div class="input-group">
+                        <select class="form-select form-select-lg" id="nama-pegawai-select"></select>
+                        <button class="btn btn-success" id="btn-masuk">Lihat Lowongan</button>
+                    </div>
+                </div>
+                <div id="login-feedback" class="form-text text-danger mt-2"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // --- SCRIPT UTAMA DIMULAI SETELAH HALAMAN SIAP ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Langkah 1: Pengecekan Library Supabase
+            if (typeof supabase === 'undefined') {
+                alert('ERROR Kritis: Library Supabase gagal dimuat. Periksa koneksi internet Anda atau coba muat ulang halaman.');
+                document.getElementById('login-feedback').textContent = 'Gagal memuat komponen inti aplikasi. Periksa koneksi internet.';
+                return; // Hentikan eksekusi jika library tidak ada
+            }
+
+            const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
+            const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            const btnCariNpsn = document.getElementById('btn-cari-npsn');
+            const npsnInput = document.getElementById('login-npsn');
+            const pegawaiSelection = document.getElementById('pegawai-selection');
+            const namaPegawaiSelect = document.getElementById('nama-pegawai-select');
+            const btnMasuk = document.getElementById('btn-masuk');
+            const loginFeedback = document.getElementById('login-feedback');
+            
+            btnCariNpsn.addEventListener('click', async () => {
+                const npsn = npsnInput.value.trim();
+                if (!npsn) { loginFeedback.textContent = 'NPSN tidak boleh kosong.'; return; }
+                loginFeedback.textContent = 'Memverifikasi...';
+                pegawaiSelection.style.display = 'none';
+
+                try {
+                    const { data: periode, error: periodeError } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
+                    if (periodeError || !periode) throw new Error('Saat ini tidak ada periode pemetaan yang aktif.');
+                    
+                    const { data: sekolah, error: sekolahError } = await supabaseClient.from('sekolah').select('id, nama_sekolah').eq('npsn', npsn).single();
+                    if (sekolahError || !sekolah) throw new Error('NPSN unit kerja tidak ditemukan.');
+
+                    const { data: kelebihan, error: kelebihanError } = await supabaseClient.from('kelebihan_pegawai').select('id', { count: 'exact' }).eq('id_sekolah', sekolah.id).eq('id_periode', periode.id);
+                    if (kelebihanError || kelebihan.length === 0) throw new Error('Unit kerja ini tidak terdata memiliki kelebihan pegawai pada periode ini.');
+                    
+                    const { data: appliedPegawaiIds, error: appliedError } = await supabaseClient.from('aplikasi_penempatan').select('id_pegawai').eq('id_periode', periode.id);
+                    if (appliedError) throw appliedError;
+                    const appliedIds = appliedPegawaiIds.map(item => item.id_pegawai);
+
+                    const query = supabaseClient.from('pegawai').select('id, nama').eq('id_sekolah', sekolah.id);
+                    if (appliedIds.length > 0) {
+                        query.not('id', 'in', `(${appliedIds.join(',')})`);
+                    }
+                    const { data: pegawaiList, error: pegawaiError } = await query;
+                    if(pegawaiError) throw pegawaiError;
+                    
+                    if (!pegawaiList || pegawaiList.length === 0) throw new Error('Semua pegawai di unit kerja ini sudah mengajukan permohonan.');
+                    
+                    namaPegawaiSelect.innerHTML = '<option selected disabled>Pilih Nama Anda...</option>';
+                    pegawaiList.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.id;
+                        option.dataset.nama = p.nama;
+                        option.textContent = p.nama;
+                        namaPegawaiSelect.appendChild(option);
+                    });
+
+                    sessionStorage.setItem('sekolahNama', sekolah.nama_sekolah);
+                    loginFeedback.textContent = '';
+                    pegawaiSelection.style.display = 'block';
+                } catch (error) {
+                    loginFeedback.textContent = error.message;
+                    console.error(error);
+                }
+            });
+
+            btnMasuk.addEventListener('click', () => {
+                const selectedOption = namaPegawaiSelect.options[namaPegawaiSelect.selectedIndex];
+                if (selectedOption.disabled) { loginFeedback.textContent = 'Anda harus memilih nama.'; return; }
+                
+                sessionStorage.setItem('idPegawai', selectedOption.value);
+                sessionStorage.setItem('namaPegawai', selectedOption.dataset.nama);
+                
+                window.location.href = 'index.html';
+            });
+        });
+    </script>
+</body>
+</html>

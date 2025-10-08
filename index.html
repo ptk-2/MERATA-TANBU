@@ -12,49 +12,104 @@
     <style>
         body { background-color: #f8f9fa; }
         .card-lowongan { transition: transform 0.2s; }
-        .card-lowongan:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
+        .card-lowongan:hover { transform: translateY(-5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #login-gate { min-height: 70vh; display: flex; align-items: center; justify-content: center; }
+        .login-box { max-width: 500px; width: 100%; }
+        #main-dashboard { display: none; }
+        .card-bg-kepsek { background-color: #A0006D; color: white; }
+        .card-bg-guru { background-color: #4A8BDF; color: white; }
+        .card-bg-lainnya { background-color: #EFFAFD; }
+        .card-bg-kepsek .card-title, .card-bg-guru .card-title { color: white; }
+        .card-bg-kepsek .card-subtitle, .card-bg-guru .card-subtitle { color: #e9ecef !important; }
+        .navbar-brand .tagline { font-size: 0.65rem; font-weight: normal; }
     </style>
 </head>
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="index.html">
-                <i class="bi bi-bullseye"></i> MERATA-TANBU
+            <a class="navbar-brand" href="index.html">
+                <div>
+                    <span class="fw-bold"><i class="bi bi-bullseye"></i> MERATA-TANBU</span>
+                    <small class="d-block text-white-50 tagline">
+                        Monitoring & Evaluasi Rencana Alokasi Tenaga ASN Kabupaten Tanah Bumbu
+                    </small>
+                </div>
             </a>
+            <div id="user-info" class="navbar-text text-white" style="display: none;"></div>
         </div>
     </nav>
 
-    <main class="container mt-4">
+    <div class="container" id="login-gate">
+        <div class="card p-4 shadow-sm login-box">
+            <div class="card-body text-center">
+                <h3 class="card-title mb-3">Portal Pemilihan Penempatan</h3>
+                <p class="card-text text-muted">Hanya untuk pegawai dari unit kerja yang terdata memiliki kelebihan pegawai.</p>
+                <div class="mb-3">
+                    <input type="text" class="form-control form-control-lg text-center" id="login-npsn" placeholder="Masukkan NPSN Unit Kerja Anda...">
+                </div>
+                <button class="btn btn-primary w-100" id="btn-cari-npsn">Cek Unit Kerja</button>
+                <div id="pegawai-selection" class="mt-4" style="display: none;">
+                    <hr>
+                    <p class="text-muted">Unit kerja terverifikasi. Silakan pilih nama Anda.</p>
+                    <div class="input-group">
+                        <select class="form-select form-select-lg" id="nama-pegawai-select"></select>
+                        <button class="btn btn-success" id="btn-masuk">Lihat Lowongan</button>
+                    </div>
+                </div>
+                 <div id="login-feedback" class="form-text text-danger mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container mt-4" id="main-dashboard">
         <div class="text-center mb-5">
             <h1 class="display-5">Informasi Kebutuhan Pegawai</h1>
-            <p class="lead text-muted" id="periode-info">Monitoring & Evaluasi Rencana Alokasi Tenaga ASN Kabupaten Tanah Bumbu</p>
+            <p class="lead text-muted" id="periode-info"></p>
         </div>
-
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-8">
-                        <input type="text" class="form-control" id="searchInput" placeholder="Cari nama sekolah atau jabatan...">
-                    </div>
-                    <div class="col-md-4">
-                        <select class="form-select" id="kecamatanSelect">
-                            <option value="">Semua Kecamatan</option>
-                        </select>
-                    </div>
+                    <div class="col-md-8"><input type="text" class="form-control" id="searchInput" placeholder="Cari nama sekolah atau jabatan..."></div>
+                    <div class="col-md-4"><select class="form-select" id="kecamatanSelect"><option value="">Semua Kecamatan</option></select></div>
                 </div>
             </div>
         </div>
-
-        <div class="row g-4" id="lowongan-list">
-            <div class="col-12 text-center p-5"><h4>Memuat data lowongan...</h4></div>
+        <div class="d-flex justify-content-end align-items-center mb-3 gap-3">
+            <span class="badge" style="background-color: #A0006D;">Kepala Sekolah</span>
+            <span class="badge" style="background-color: #4A8BDF;">Guru Kelas</span>
+            <span class="badge" style="background-color: #EFFAFD; color: #333; border: 1px solid #ddd;">Jabatan Lain</span>
         </div>
+        <div class="row g-4" id="lowongan-list"></div>
     </main>
 
     <footer class="container text-center mt-5 mb-4"><hr><p>&copy; 2025 Dinas Pendidikan Kabupaten Tanah Bumbu.</p></footer>
+
+    <div class="modal fade" id="permohonanModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="permohonanModalLabel">Formulir Permohonan Penempatan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="permohonan-form">
+                        <input type="hidden" id="id-lowongan-input">
+                        <div class="mb-3"><label for="tmt-sk" class="form-label">TMT SK PPPK</label><input type="date" class="form-control" id="tmt-sk" required></div>
+                        <div class="mb-3"><label for="surat-permohonan" class="form-label">Upload Surat Permohonan (PDF)</label><input class="form-control" type="file" id="surat-permohonan" accept=".pdf" required></div>
+                        <div class="mb-3"><label for="surat-rekomendasi" class="form-label">Upload Surat Rekomendasi Menerima (PDF)</label><input class="form-control" type="file" id="surat-rekomendasi" accept=".pdf" required></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" form="permohonan-form" id="btn-kirim-permohonan">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                        Kirim Permohonan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -62,14 +117,75 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        const lowonganList = document.getElementById('lowongan-list');
-        const periodeInfo = document.getElementById('periode-info');
+        const loginGate = document.getElementById('login-gate');
+        const mainDashboard = document.getElementById('main-dashboard');
+        const btnCariNpsn = document.getElementById('btn-cari-npsn');
+        const npsnInput = document.getElementById('login-npsn');
+        const pegawaiSelection = document.getElementById('pegawai-selection');
+        const namaPegawaiSelect = document.getElementById('nama-pegawai-select');
+        const btnMasuk = document.getElementById('btn-masuk');
+        const loginFeedback = document.getElementById('login-feedback');
+        const userInfo = document.getElementById('user-info');
+        const permohonanModalEl = document.getElementById('permohonanModal');
+        const permohonanForm = document.getElementById('permohonan-form');
+        const permohonanModal = new bootstrap.Modal(permohonanModalEl);
         const searchInput = document.getElementById('searchInput');
         const kecamatanSelect = document.getElementById('kecamatanSelect');
+        const lowonganList = document.getElementById('lowongan-list');
+        const periodeInfo = document.getElementById('periode-info');
+        
+        let allLowongan = [];
+        let activePeriode = null;
 
-        let allLowongan = []; // Variabel untuk menyimpan semua data asli
+        btnCariNpsn.addEventListener('click', async () => {
+            const npsn = npsnInput.value.trim();
+            if (!npsn) { loginFeedback.textContent = 'NPSN tidak boleh kosong.'; return; }
+            loginFeedback.textContent = 'Memverifikasi...';
+            pegawaiSelection.style.display = 'none';
+            try {
+                const { data: periode } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
+                if (!periode) throw new Error('Saat ini tidak ada periode pemetaan yang aktif.');
+                const { data: sekolah } = await supabaseClient.from('sekolah').select('id, nama_sekolah').eq('npsn', npsn).single();
+                if (!sekolah) throw new Error('NPSN unit kerja tidak ditemukan.');
+                const { data: kelebihan } = await supabaseClient.from('kelebihan_pegawai').select('id').eq('id_sekolah', sekolah.id).eq('id_periode', periode.id).limit(1);
+                if (!kelebihan || kelebihan.length === 0) throw new Error('Unit kerja ini tidak terdata memiliki kelebihan pegawai pada periode ini.');
+                const { data: appliedPegawaiIds } = await supabaseClient.from('aplikasi_penempatan').select('id_pegawai').eq('id_periode', periode.id);
+                const appliedIds = appliedPegawaiIds.map(item => item.id_pegawai);
+                const query = supabaseClient.from('pegawai').select('id, nama').eq('id_sekolah', sekolah.id);
+                if (appliedIds.length > 0) { query.not('id', 'in', `(${appliedIds.join(',')})`); }
+                const { data: pegawaiList } = await query;
+                if (!pegawaiList || pegawaiList.length === 0) throw new Error('Semua pegawai di unit kerja ini sudah mengajukan permohonan.');
+                namaPegawaiSelect.innerHTML = '<option selected disabled>Pilih Nama Anda...</option>';
+                pegawaiList.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.dataset.nama = p.nama;
+                    option.textContent = p.nama;
+                    namaPegawaiSelect.appendChild(option);
+                });
+                sessionStorage.setItem('sekolahNama', sekolah.nama_sekolah);
+                loginFeedback.textContent = '';
+                pegawaiSelection.style.display = 'block';
+            } catch (error) {
+                loginFeedback.textContent = error.message;
+            }
+        });
 
-        // Fungsi untuk menampilkan data ke layar
+        btnMasuk.addEventListener('click', () => {
+            const selectedOption = namaPegawaiSelect.options[namaPegawaiSelect.selectedIndex];
+            if (selectedOption.disabled) { loginFeedback.textContent = 'Anda harus memilih nama.'; return; }
+            const namaPegawai = selectedOption.dataset.nama;
+            const idPegawai = selectedOption.value;
+            const namaSekolah = sessionStorage.getItem('sekolahNama');
+            sessionStorage.setItem('idPegawai', idPegawai);
+            sessionStorage.setItem('namaPegawai', namaPegawai);
+            loginGate.style.display = 'none';
+            mainDashboard.style.display = 'block';
+            userInfo.innerHTML = `Halo, <strong>${namaPegawai}</strong> dari <span class="text-white-50">${namaSekolah}</span>`;
+            userInfo.style.display = 'block';
+            loadInitialData();
+        });
+        
         function renderLowongan(dataToRender) {
             if (dataToRender.length === 0) {
                 lowonganList.innerHTML = '<div class="col-12 text-center p-5"><h5 class="text-muted">Data lowongan tidak ditemukan.</h5></div>';
@@ -77,16 +193,21 @@
             }
             lowonganList.innerHTML = '';
             dataToRender.forEach(item => {
+                let cardBgClass = 'card-bg-lainnya';
+                switch (item.jabatan) {
+                    case 'Kepala Sekolah': cardBgClass = 'card-bg-kepsek'; break;
+                    case 'Guru Kelas': cardBgClass = 'card-bg-guru'; break;
+                }
                 const cardHtml = `
                     <div class="col-md-6 col-lg-4">
-                        <div class="card h-100 card-lowongan">
-                            <div class="card-body">
+                        <div class="card h-100 card-lowongan ${cardBgClass}">
+                            <div class="card-body pb-0">
                                 <h5 class="card-title">${item.sekolah.nama_sekolah}</h5>
-                                <h6 class="card-subtitle mb-2 text-muted"><i class="bi bi-geo-alt-fill"></i> ${item.sekolah.kecamatan}</h6>
-                                <p class="card-text mt-3">Dibutuhkan: <span class="fw-bold">${item.jabatan}</span></p>
+                                <h6 class="card-subtitle mb-2"><i class="bi bi-geo-alt-fill"></i> ${item.sekolah.kecamatan}</h6>
+                                <p class="card-text mt-3">Perlu: <span class="fw-bold">${item.jabatan}</span> (${item.jumlah_dibutuhkan} orang)</p>
                             </div>
-                            <div class="card-footer bg-transparent border-0 pb-3">
-                                <span class="fs-4 fw-bold text-primary">${item.jumlah_dibutuhkan}</span> orang
+                            <div class="card-footer bg-transparent border-0 p-3">
+                                <button class="btn btn-light w-100" data-bs-toggle="modal" data-bs-target="#permohonanModal" data-id-lowongan="${item.id}">Pilih Penempatan Ini</button>
                             </div>
                         </div>
                     </div>`;
@@ -94,10 +215,10 @@
             });
         }
         
-        // Fungsi untuk mengisi opsi filter kecamatan
         function populateKecamatanFilter(data) {
             const kecamatanSet = new Set(data.map(item => item.sekolah.kecamatan));
             const sortedKecamatan = Array.from(kecamatanSet).sort();
+            kecamatanSelect.innerHTML = '<option value="">Semua Kecamatan</option>';
             sortedKecamatan.forEach(kecamatan => {
                 const option = document.createElement('option');
                 option.value = kecamatan;
@@ -106,7 +227,6 @@
             });
         }
         
-        // Fungsi untuk menerapkan filter
         function applyFilters() {
             const searchTerm = searchInput.value.toLowerCase();
             const selectedKecamatan = kecamatanSelect.value;
@@ -118,38 +238,102 @@
                 );
             }
             if (selectedKecamatan) {
-                filteredData = filteredData.filter(item => 
-                    item.sekolah.kecamatan === selectedKecamatan
-                );
+                filteredData = filteredData.filter(item => item.sekolah.kecamatan === selectedKecamatan);
             }
             renderLowongan(filteredData);
         }
 
-        // Fungsi utama untuk memuat data awal
         async function loadInitialData() {
-            const { data: activePeriode } = await supabaseClient.from('periode_pemetaan').select('*').eq('status', 'Aktif').single();
-            if (!activePeriode) {
-                periodeInfo.textContent = 'Saat ini tidak ada periode pemetaan yang sedang aktif.';
-                lowonganList.innerHTML = '<div class="col-12 text-center p-5"><h5 class="text-muted">Tidak ada data untuk ditampilkan.</h5></div>';
-                return;
-            }
+            const { data: periode } = await supabaseClient.from('periode_pemetaan').select('*').eq('status', 'Aktif').single();
+            if (!periode) { periodeInfo.textContent = 'Saat ini tidak ada periode pemetaan yang sedang aktif.'; lowonganList.innerHTML = '<div class="col-12 text-center p-5"><h5 class="text-muted">Tidak ada data untuk ditampilkan.</h5></div>'; return; }
+            activePeriode = periode;
             periodeInfo.textContent = `Menampilkan data untuk periode: ${activePeriode.nama_periode}`;
-            
-            const { data, error } = await supabaseClient.from('kekurangan_pegawai').select(`*, sekolah(*)`).eq('id_periode', activePeriode.id);
-            if (error || !data) {
-                lowonganList.innerHTML = '<div class="col-12 text-center p-5"><h5 class="text-danger">Gagal memuat data.</h5></div>';
-                return;
-            }
+            const { data, error } = await supabaseClient.from('kekurangan_pegawai').select(`*, sekolah(*)`).eq('id_periode', activePeriode.id).eq('status', 'Terbuka');
+            if (error || !data) { lowonganList.innerHTML = '<div class="col-12 text-center p-5"><h5 class="text-danger">Gagal memuat data.</h5></div>'; return; }
             allLowongan = data;
             renderLowongan(allLowongan);
             populateKecamatanFilter(allLowongan);
         }
         
-        // Tambahkan event listener untuk filter real-time
         searchInput.addEventListener('input', applyFilters);
         kecamatanSelect.addEventListener('change', applyFilters);
-        
-        document.addEventListener('DOMContentLoaded', loadInitialData);
+
+        permohonanModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const lowonganId = button.getAttribute('data-id-lowongan');
+            document.getElementById('id-lowongan-input').value = lowonganId;
+            permohonanForm.reset();
+        });
+
+        permohonanForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            console.log("--- Memulai Proses Pengiriman Permohonan ---");
+            const btnKirim = document.getElementById('btn-kirim-permohonan');
+            const spinner = btnKirim.querySelector('.spinner-border');
+            const idLowongan = document.getElementById('id-lowongan-input').value;
+            const idPegawai = sessionStorage.getItem('idPegawai');
+            const tmtSk = document.getElementById('tmt-sk').value;
+            const filePermohonan = document.getElementById('surat-permohonan').files[0];
+            const fileRekomendasi = document.getElementById('surat-rekomendasi').files[0];
+
+            console.log("ID Lowongan:", idLowongan, "ID Pegawai:", idPegawai, "TMT SK:", tmtSk);
+            if (!idPegawai) { alert("Error: ID Pegawai tidak ditemukan. Silakan login kembali."); return; }
+            if (!filePermohonan || !fileRekomendasi) { alert('Harap lengkapi semua file.'); return; }
+            
+            btnKirim.disabled = true;
+            spinner.style.display = 'inline-block';
+            try {
+                const bucketName = 'dokumen-aplikasi-MERATA';
+                console.log("Mulai mengunggah file...");
+                const filePath1 = `${idPegawai}/permohonan-${Date.now()}`;
+                let { error: uploadError1 } = await supabaseClient.storage.from(bucketName).upload(filePath1, filePermohonan);
+                if (uploadError1) throw uploadError1;
+                const { data: urlData1 } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath1);
+                console.log("URL File 1:", urlData1.publicUrl);
+                const filePath2 = `${idPegawai}/rekomendasi-${Date.now()}`;
+                let { error: uploadError2 } = await supabaseClient.storage.from(bucketName).upload(filePath2, fileRekomendasi);
+                if (uploadError2) throw uploadError2;
+                const { data: urlData2 } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath2);
+                console.log("URL File 2:", urlData2.publicUrl);
+                
+                const dataToInsert = { 
+                    id_pegawai: parseInt(idPegawai, 10),
+                    id_kekurangan_pegawai: parseInt(idLowongan, 10),
+                    tmt_sk: tmtSk,
+                    url_surat_permohonan: urlData1.publicUrl,
+                    url_surat_rekomendasi: urlData2.publicUrl,
+                    id_periode: activePeriode.id
+                };
+                console.log("Data yang akan dikirim ke Supabase:", dataToInsert);
+                
+                const { error: insertError } = await supabaseClient.from('aplikasi_penempatan').insert([dataToInsert]);
+                if (insertError) throw insertError;
+
+                alert('Permohonan berhasil dikirim! Anda akan dialihkan kembali.');
+                permohonanModal.hide();
+                sessionStorage.clear();
+                window.location.href = 'portal.html';
+            } catch (error) {
+                console.error("--- DETAIL ERROR DARI SUPABASE ---", error);
+                alert(`Gagal mengirim permohonan: ${error.message}`);
+            } finally {
+                btnKirim.disabled = false;
+                spinner.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const idPegawai = sessionStorage.getItem('idPegawai');
+            const namaPegawai = sessionStorage.getItem('namaPegawai');
+            const sekolahNama = sessionStorage.getItem('sekolahNama');
+            if (!idPegawai || !namaPegawai || !sekolahNama) {
+                window.location.href = 'portal.html';
+                return;
+            }
+            userInfo.innerHTML = `Halo, <strong>${namaPegawai}</strong> dari <span class="text-white-50">${sekolahNama}</span>`;
+            userInfo.style.display = 'block';
+            loadInitialData();
+        });
     </script>
 </body>
 </html>

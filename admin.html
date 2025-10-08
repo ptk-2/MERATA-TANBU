@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Bursa Guru TK</title>
+    <title>Admin Dashboard - MERATA-TANBU</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -25,10 +24,11 @@
         <h4 class="text-center mb-4">Admin Panel</h4>
         <ul class="nav flex-column">
             <li class="nav-item"><a class="nav-link active" href="admin.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
-            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="persetujuan.html"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
+            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
             <li class="nav-item"><a class="nav-link" href="periode.html"><i class="bi bi-calendar-range"></i>Kelola Periode</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-people"></i>Kelola Guru</a></li>
+            <li class="nav-item"><a class="nav-link" href="kelola-pegawai.html"><i class="bi bi-people"></i>Kelola Pegawai</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" href="login.html" id="logout-button"><i class="bi bi-box-arrow-left"></i>Logout</a></li>
         </ul>
     </div>
@@ -40,22 +40,25 @@
              <div class="col-md-4">
                 <div class="card text-white bg-warning mb-3">
                     <div class="card-header fw-bold">Menunggu Persetujuan</div>
-                    <div class="card-body"><h2 class="card-title">3 Pilihan</h2><p class="card-text">Guru butuh konfirmasi Anda.</p></div>
+                    <div class="card-body"><h2 class="card-title" id="total-persetujuan">...</h2><p class="card-text">Permohonan penempatan baru.</p></div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card text-white bg-info mb-3">
                     <div class="card-header fw-bold">Lowongan Terbuka</div>
                     <div class="card-body">
-                        <h2 class="card-title" id="total-lowongan">...</h2>
-                        <p class="card-text">Total lowongan pegawai yang aktif.</p>
+                        <h2 class="card-title" id="total-kekurangan">...</h2>
+                        <p class="card-text">Total pegawai yang dibutuhkan.</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card text-white bg-secondary mb-3">
-                    <div class="card-header fw-bold">Guru Tersedia</div>
-                    <div class="card-body"><h2 class="card-title">25 Guru</h2><p class="card-text">Total guru belum memilih.</p></div>
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-header fw-bold">Kandidat Tersedia</div>
+                    <div class="card-body">
+                        <h2 class="card-title" id="total-kelebihan">...</h2>
+                        <p class="card-text">Total pegawai yang berlebih.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -64,10 +67,9 @@
             <div class="card-header"><h4><i class="bi bi-check2-circle"></i> Daftar Persetujuan Terbaru</h4></div>
             <div class="card-body">
                 <table class="table table-hover">
-                    <thead><tr><th>Nama Guru</th><th>Sekolah Pilihan</th><th>Waktu Memilih</th><th class="text-center">Aksi</th></tr></thead>
-                    <tbody>
-                        <tr><td>Budi Santoso</td><td>TK Negeri Pembina 1</td><td>07 Okt 2025, 15:21</td><td class="text-center"><button class="btn btn-success btn-sm">Setujui</button> <button class="btn btn-danger btn-sm">Tolak</button></td></tr>
-                        <tr><td>Retno Wulandari</td><td>TK Negeri Tunas Harapan</td><td>07 Okt 2025, 13:30</td><td class="text-center"><button class="btn btn-success btn-sm">Setujui</button> <button class="btn btn-danger btn-sm">Tolak</button></td></tr>
+                    <thead><tr><th>Nama Pegawai</th><th>Sekolah Pilihan</th><th>Waktu Memilih</th><th class="text-center">Aksi</th></tr></thead>
+                    <tbody id="persetujuan-ringkasan-body">
+                        <tr><td colspan="4" class="text-center text-muted">Memuat data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -83,22 +85,63 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        async function updateTotalLowongan() {
-            const lowonganElement = document.getElementById('total-lowongan');
-            
-            const { count, error } = await supabaseClient
-                .from('kekurangan_pegawai')
-                .select('*', { count: 'exact', head: true });
+        async function updateDashboardStats() {
+            const kekuranganElement = document.getElementById('total-kekurangan');
+            const kelebihanElement = document.getElementById('total-kelebihan');
+            const persetujuanElement = document.getElementById('total-persetujuan');
 
-            if (error) {
-                console.error('Error counting rows:', error);
-                lowonganElement.textContent = 'Error';
+            // 1. Cari periode yang aktif
+            const { data: activePeriode } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
+
+            if (activePeriode) {
+                // 2. Hitung total KEKURANGAN pegawai
+                const { data: kekuranganData } = await supabaseClient.from('kekurangan_pegawai').select('jumlah_dibutuhkan').eq('id_periode', activePeriode.id);
+                const totalKekurangan = kekuranganData ? kekuranganData.reduce((sum, item) => sum + item.jumlah_dibutuhkan, 0) : 0;
+                kekuranganElement.textContent = `${totalKekurangan} Pegawai`;
+
+                // 3. Hitung total KELEBIHAN pegawai
+                const { data: kelebihanData } = await supabaseClient.from('kelebihan_pegawai').select('jumlah_kelebihan').eq('id_periode', activePeriode.id);
+                const totalKelebihan = kelebihanData ? kelebihanData.reduce((sum, item) => sum + item.jumlah_kelebihan, 0) : 0;
+                kelebihanElement.textContent = `${totalKelebihan} Pegawai`;
             } else {
-                lowonganElement.textContent = `${count} Lowongan`;
+                kekuranganElement.textContent = '0 Pegawai';
+                kelebihanElement.textContent = '0 Pegawai';
+            }
+
+            // 4. Hitung total PERSETUJUAN yang menunggu
+            const { count: persetujuanCount } = await supabaseClient.from('aplikasi_penempatan').select('*', { count: 'exact', head: true }).eq('status_aplikasi', 'Menunggu Persetujuan');
+            persetujuanElement.textContent = `${persetujuanCount || 0} Permohonan`;
+        }
+
+        async function loadRingkasanPersetujuan() {
+            const tableBody = document.getElementById('persetujuan-ringkasan-body');
+            const { data, error } = await supabaseClient.from('aplikasi_penempatan')
+                .select(`created_at, pegawai(nama), lowongan:kekurangan_pegawai(sekolah(nama_sekolah))`)
+                .eq('status_aplikasi', 'Menunggu Persetujuan')
+                .limit(3).order('created_at', { ascending: false });
+
+            if(data && data.length > 0) {
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = `
+                        <tr>
+                            <td>${item.pegawai.nama}</td>
+                            <td>${item.lowongan.sekolah.nama_sekolah}</td>
+                            <td>${new Date(item.created_at).toLocaleString('id-ID')}</td>
+                            <td class="text-center"><a href="persetujuan.html" class="btn btn-primary btn-sm">Proses</a></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data persetujuan.</td></tr>';
             }
         }
 
-        document.addEventListener('DOMContentLoaded', updateTotalLowongan);
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDashboardStats();
+            loadRingkasanPersetujuan();
+        });
 
         document.getElementById('logout-button').addEventListener('click', function(event) {
             event.preventDefault(); 

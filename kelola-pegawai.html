@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Pegawai - Admin Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { display: flex; min-height: 100vh; background-color: #f8f9fa; }
+        .sidebar { width: 250px; background-color: #343a40; color: white; position: fixed; height: 100%; padding-top: 20px; }
+        .sidebar a { color: #adb5bd; text-decoration: none; display: block; padding: 10px 20px; }
+        .sidebar a:hover, .sidebar a.active { color: white; background-color: #495057; }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .content { margin-left: 250px; padding: 20px; width: calc(100% - 250px); }
+        #form-detail-pegawai { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h4 class="text-center mb-4">Admin Panel</h4>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
+            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="periode.html"><i class="bi bi-calendar-range"></i>Kelola Periode</a></li>
+            <li class="nav-item"><a class="nav-link active" href="kelola-pegawai.html"><i class="bi bi-people"></i>Kelola Pegawai</a></li>
+            <li class="nav-item mt-auto"><a class="nav-link" href="login.html" id="logout-button"><i class="bi bi-box-arrow-left"></i>Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Kelola Data Pegawai</h1>
+            <div class="btn-toolbar">
+                <div class="btn-group me-2">
+                    <button class="btn btn-success" id="btn-download-template"><i class="bi bi-download"></i> Download Template</button>
+                    <label for="upload-input" class="btn btn-info mb-0"><i class="bi bi-upload"></i> Upload Template</label>
+                    <input type="file" id="upload-input" accept=".xlsx, .xls" style="display: none;">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-danger" id="btn-clear-data"><i class="bi bi-trash3"></i> Bersihkan Data</button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pegawaiModal" id="btn-tambah-pegawai">
+                        <i class="bi bi-plus-circle"></i> Tambah Manual
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr><th>Nama Pegawai</th><th>NIP</th><th>Jabatan</th><th>Unit Kerja (Sekolah)</th><th class="text-center">Aksi</th></tr>
+                    </thead>
+                    <tbody id="pegawai-table-body">
+                        <tr><td colspan="5" class="text-center">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <footer class="text-center mt-5"><hr><p>&copy; 2025 Dinas Pendidikan Kabupaten Tanah Bumbu.</p></footer>
+    </div>
+    
+    <div class="modal fade" id="pegawaiModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pegawaiModalLabel">Tambah Pegawai Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pegawai-form">
+                        <input type="hidden" id="pegawai-id">
+                        <input type="hidden" id="id-sekolah">
+                        <div class="mb-3">
+                            <label for="npsn-search" class="form-label fw-bold">Langkah 1: Cari Unit Kerja berdasarkan NPSN</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="npsn-search" placeholder="Masukkan NPSN lalu klik Cek...">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-cek-npsn">Cek</button>
+                            </div>
+                            <div id="npsn-feedback" class="form-text mt-2"></div>
+                        </div>
+                        <hr>
+                        <div id="form-detail-pegawai">
+                            <label class="form-label fw-bold">Langkah 2: Isi Detail Pegawai</label>
+                            <fieldset disabled class="mb-3">
+                                <div class="row">
+                                    <div class="col-md-8"><label class="form-label">Nama Sekolah</label><input type="text" class="form-control" id="nama-sekolah-readonly"></div>
+                                    <div class="col-md-4"><label class="form-label">Kecamatan</label><input type="text" class="form-control" id="kecamatan-readonly"></div>
+                                </div>
+                            </fieldset>
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><label for="nama" class="form-label">Nama Pegawai</label><input type="text" class="form-control" id="nama" required></div>
+                                <div class="col-md-6 mb-3"><label for="nip" class="form-label">NIP</label><input type="text" class="form-control" id="nip"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><label for="lp" class="form-label">Jenis Kelamin</label><select class="form-select" id="lp"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                                <div class="col-md-6 mb-3"><label for="golongan" class="form-label">Golongan</label><input type="text" class="form-control" id="golongan"></div>
+                            </div>
+                            <div class="row">
+                                 <div class="col-md-12 mb-3"><label for="jabatan" class="form-label">Jabatan</label><input type="text" class="form-control" id="jabatan" required></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" form="pegawai-form">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ... (Semua kode JavaScript dari versi sebelumnya tetap sama) ...
+        const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        const pegawaiForm = document.getElementById('pegawai-form');
+        const pegawaiModal = new bootstrap.Modal(document.getElementById('pegawaiModal'));
+        const modalTitle = document.getElementById('pegawaiModalLabel');
+        const formDetailPegawai = document.getElementById('form-detail-pegawai');
+        const btnCekNpsn = document.getElementById('btn-cek-npsn');
+        const btnDownloadTemplate = document.getElementById('btn-download-template');
+        const btnClearData = document.getElementById('btn-clear-data');
+        const uploadInput = document.getElementById('upload-input');
+
+        btnDownloadTemplate.addEventListener('click', () => {
+            const headers = ["nama", "nip", "lp", "jabatan", "golongan", "npsn_sekolah"];
+            const worksheet = XLSX.utils.json_to_sheet([{}], { header: headers });
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Template Data Pegawai");
+            XLSX.writeFile(workbook, "template_pegawai.xlsx");
+        });
+
+        uploadInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!confirm(`Anda yakin ingin mengunggah data dari file "${file.name}"?`)) { event.target.value = ''; return; }
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    if (jsonData.length === 0) { alert('File Excel kosong atau format tidak sesuai.'); return; }
+                    alert(`Membaca ${jsonData.length} baris data. Memulai proses pemetaan NPSN...`);
+                    const { data: schools, error: schoolError } = await supabaseClient.from('sekolah').select('id, npsn');
+                    if (schoolError) { throw new Error('Gagal mengambil data sekolah untuk pemetaan.'); }
+                    const npsnToIdMap = new Map(schools.map(s => [String(s.npsn), s.id]));
+                    const processedData = jsonData.map(row => ({
+                        nama: row.nama, nip: row.nip, lp: row.lp, jabatan: row.jabatan, golongan: row.golongan,
+                        id_sekolah: npsnToIdMap.get(String(row.npsn_sekolah))
+                    })).filter(row => row.id_sekolah);
+                    const notFoundCount = jsonData.length - processedData.length;
+                    const { error: insertError } = await supabaseClient.from('pegawai').insert(processedData);
+                    if (insertError) { throw new Error(`Gagal mengunggah data: ${insertError.message}`); }
+                    alert(`Berhasil! ${processedData.length} data pegawai berhasil diunggah.\n${notFoundCount > 0 ? `${notFoundCount} data dilewati karena NPSN tidak ditemukan.` : ''}`);
+                    getPegawai();
+                } catch (error) { alert(`Terjadi kesalahan: ${error.message}`); } finally { event.target.value = ''; }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        btnClearData.addEventListener('click', async () => {
+            if (confirm('PERINGATAN: Anda yakin ingin menghapus SEMUA data pegawai? Aksi ini tidak dapat dibatalkan.')) {
+                if (prompt('Untuk konfirmasi final, ketik "HAPUS" di dalam kotak ini.') === 'HAPUS') {
+                    const { error } = await supabaseClient.from('pegawai').delete().neq('id', 0);
+                    if (error) { alert(`Gagal membersihkan data: ${error.message}`); } else { alert('Semua data pegawai berhasil dihapus.'); getPegawai(); }
+                } else { alert('Penghapusan dibatalkan.'); }
+            }
+        });
+
+        async function getPegawai() {
+            const tableBody = document.getElementById('pegawai-table-body');
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Memuat data...</td></tr>';
+            const { data, error } = await supabaseClient.from('pegawai').select(`*, sekolah(nama_sekolah)`).order('nama');
+            if (error) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Gagal memuat data.</td></tr>`; return; }
+            if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Belum ada data pegawai.</td></tr>`; return; }
+            tableBody.innerHTML = ''; 
+            data.forEach(item => {
+                const row = `<tr><td>${item.nama}</td><td>${item.nip || '-'}</td><td>${item.jabatan}</td><td>${item.sekolah ? item.sekolah.nama_sekolah : 'N/A'}</td><td class="text-center"><button class="btn btn-warning btn-sm btn-edit" data-id="${item.id}" title="Edit"><i class="bi bi-pencil-square"></i></button> <button class="btn btn-danger btn-sm btn-delete" data-id="${item.id}" title="Hapus"><i class="bi bi-trash"></i></button></td></tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        btnCekNpsn.addEventListener('click', async () => {
+            const npsn = document.getElementById('npsn-search').value.trim();
+            const feedbackEl = document.getElementById('npsn-feedback');
+            if (!npsn) { feedbackEl.textContent = 'NPSN tidak boleh kosong.'; feedbackEl.className = 'form-text text-danger'; return; }
+            feedbackEl.textContent = 'Mencari...';
+            feedbackEl.className = 'form-text text-muted';
+            formDetailPegawai.style.display = 'none';
+            const { data, error } = await supabaseClient.from('sekolah').select('id, nama_sekolah, kecamatan').eq('npsn', npsn).single();
+            if (data) {
+                feedbackEl.textContent = 'Sekolah ditemukan.';
+                feedbackEl.className = 'form-text text-success';
+                document.getElementById('nama-sekolah-readonly').value = data.nama_sekolah;
+                document.getElementById('kecamatan-readonly').value = data.kecamatan;
+                document.getElementById('id-sekolah').value = data.id;
+                formDetailPegawai.style.display = 'block';
+            } else {
+                feedbackEl.textContent = 'Sekolah dengan NPSN ini tidak ditemukan.';
+                feedbackEl.className = 'form-text text-danger';
+            }
+        });
+        
+        document.getElementById('btn-tambah-pegawai').addEventListener('click', () => {
+            document.getElementById('pegawaiModalLabel').textContent = 'Tambah Pegawai Baru';
+            pegawaiForm.reset();
+            document.getElementById('pegawai-id').value = '';
+            formDetailPegawai.style.display = 'none';
+            document.getElementById('npsn-feedback').textContent = '';
+        });
+
+        pegawaiForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = document.getElementById('pegawai-id').value;
+            const idSekolah = document.getElementById('id-sekolah').value;
+            if (!idSekolah) { alert('Silakan cari dan temukan Unit Kerja berdasarkan NPSN terlebih dahulu.'); return; }
+            const formData = {
+                nama: document.getElementById('nama').value, nip: document.getElementById('nip').value,
+                lp: document.getElementById('lp').value, jabatan: document.getElementById('jabatan').value,
+                golongan: document.getElementById('golongan').value, id_sekolah: idSekolah,
+            };
+            let error;
+            if (id) {
+                const { error: updateError } = await supabaseClient.from('pegawai').update(formData).eq('id', id);
+                error = updateError;
+            } else {
+                const { error: insertError } = await supabaseClient.from('pegawai').insert([formData]);
+                error = insertError;
+            }
+            if (error) { alert('Gagal menyimpan data!'); console.error(error); } else { pegawaiModal.hide(); getPegawai(); }
+        });
+
+        document.getElementById('pegawai-table-body').addEventListener('click', async (event) => {
+            const target = event.target.closest('button');
+            if (target && target.classList.contains('btn-edit')) {
+                const id = target.dataset.id;
+                const { data } = await supabaseClient.from('pegawai').select(`*, sekolah(*)`).eq('id', id).single();
+                if (data) {
+                    modalTitle.textContent = 'Edit Data Pegawai';
+                    document.getElementById('npsn-search').value = data.sekolah.npsn;
+                    document.getElementById('nama-sekolah-readonly').value = data.sekolah.nama_sekolah;
+                    document.getElementById('kecamatan-readonly').value = data.sekolah.kecamatan;
+                    document.getElementById('id-sekolah').value = data.sekolah.id;
+                    document.getElementById('pegawai-id').value = data.id;
+                    document.getElementById('nama').value = data.nama;
+                    document.getElementById('nip').value = data.nip;
+                    document.getElementById('lp').value = data.lp;
+                    document.getElementById('jabatan').value = data.jabatan;
+                    document.getElementById('golongan').value = data.golongan;
+                    formDetailPegawai.style.display = 'block';
+                    pegawaiModal.show();
+                }
+            }
+            if (target && target.classList.contains('btn-delete')) {
+                const id = target.dataset.id;
+                if (confirm('Anda yakin ingin menghapus data pegawai ini?')) {
+                    const { error } = await supabaseClient.from('pegawai').delete().eq('id', id);
+                    if (error) { alert('Gagal menghapus data!'); } else { getPegawai(); }
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', getPegawai);
+        document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); sessionStorage.clear(); window.location.href = 'login.html'; });
+    </script>
+</body>
+</html>

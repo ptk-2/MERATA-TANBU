@@ -25,9 +25,10 @@
         <ul class="nav flex-column">
             <li class="nav-item"><a class="nav-link" href="admin.html"><i class="bi bi-speedometer2"></i>Dashboard</a></li>
             <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-check2-circle"></i>Persetujuan</a></li>
-            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="kekurangan-pegawai.html"><i class="bi bi-building-dash"></i>Kekurangan Pegawai</a></li>
+            <li class="nav-item"><a class="nav-link" href="kelebihan-pegawai.html"><i class="bi bi-building-add"></i>Kelebihan Pegawai</a></li>
             <li class="nav-item"><a class="nav-link active" href="periode.html"><i class="bi bi-calendar-range"></i>Kelola Periode</a></li>
-            <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-people"></i>Kelola Guru</a></li>
+            <li class="nav-item"><a class="nav-link" href="kelola-pegawai.html"><i class="bi bi-people"></i>Kelola Pegawai</a></li>
             <li class="nav-item mt-auto"><a class="nav-link" href="login.html" id="logout-button"><i class="bi bi-box-arrow-left"></i>Logout</a></li>
         </ul>
     </div>
@@ -139,9 +140,7 @@
                 status: document.getElementById('status').value
             };
 
-            // LOGIKA PENTING: Jika status diubah menjadi "Aktif"
             if (formData.status === 'Aktif') {
-                // Ubah semua status periode lain menjadi "Selesai"
                 const { error: updateAllError } = await supabaseClient.from('periode_pemetaan').update({ status: 'Selesai' }).neq('id', id || 0);
                 if (updateAllError) { console.error('Error updating other statuses:', updateAllError); alert('Gagal mengubah status periode lain!'); return; }
             }
@@ -190,11 +189,7 @@
         });
 
         document.addEventListener('DOMContentLoaded', getPeriode);
-        document.getElementById('logout-button').addEventListener('click', (event) => {
-            event.preventDefault(); 
-            sessionStorage.removeItem('adminAuthenticated'); 
-            window.location.href = 'login.html'; 
-        });
+        document.getElementById('logout-button').addEventListener('click', (e) => { e.preventDefault(); sessionStorage.clear(); window.location.href = 'login.html'; });
     </script>
 </body>
 </html>
