@@ -10,15 +10,19 @@
     <style>
         body { background-color: #f8f9fa; }
         .container { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-box { max-width: 500px; width: 100%; }
+        .login-box { 
+            max-width: 500px; /* Anda bisa sesuaikan lebar maksimum di sini */
+            width: 100%; 
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card p-4 shadow-sm login-box">
             <div class="card-body text-center">
-                <h3 class="card-title mb-3">Portal Pemilihan Penempatan</h3>
-                <p class="card-text text-muted">Hanya untuk pegawai dari unit kerja yang terdata memiliki kelebihan pegawai.</p>
+
+                <img src="https://yghywsrqhgbaryqgdxkv.supabase.co/storage/v1/object/public/dokumen-aplikasi-MERATA/MERATA%202.png" class="img-fluid mb-4" alt="Header MERATA TANBU" style="max-width: 400px;">
+
                 <div class="mb-3">
                     <input type="text" class="form-control form-control-lg text-center" id="login-npsn" placeholder="Masukkan NPSN Unit Kerja Anda...">
                 </div>
@@ -47,6 +51,7 @@
         </div>
     </div>
     <script>
+        // --- Seluruh kode JavaScript tetap sama, tidak perlu diubah ---
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof supabase === 'undefined') {
                 alert('ERROR Kritis: Library Supabase gagal dimuat. Periksa koneksi internet Anda atau coba muat ulang halaman.');
@@ -64,13 +69,12 @@
             const namaPegawaiSelect = document.getElementById('nama-pegawai-select');
             const loginFeedback = document.getElementById('login-feedback');
             
-            // Variabel untuk elemen baru
             const editNamaSection = document.getElementById('edit-nama-section');
             const namaPegawaiEditInput = document.getElementById('nama-pegawai-edit');
             const btnSimpanMasuk = document.getElementById('btn-simpan-masuk');
 
             btnCariNpsn.addEventListener('click', async () => {
-                npsnInput.disabled = true; // Nonaktifkan input saat mencari
+                npsnInput.disabled = true;
                 btnCariNpsn.disabled = true;
                 loginFeedback.textContent = 'Memverifikasi...';
                 pegawaiSelection.style.display = 'none';
@@ -119,7 +123,6 @@
                 }
             });
 
-            // Event listener saat nama dipilih
             namaPegawaiSelect.addEventListener('change', () => {
                 const selectedOption = namaPegawaiSelect.options[namaPegawaiSelect.selectedIndex];
                 if (selectedOption.disabled) {
@@ -130,7 +133,6 @@
                 editNamaSection.style.display = 'block';
             });
 
-            // Event listener untuk tombol Simpan & Masuk
             btnSimpanMasuk.addEventListener('click', async () => {
                 const spinner = btnSimpanMasuk.querySelector('.spinner-border');
                 const idPegawai = namaPegawaiSelect.value;
@@ -150,7 +152,6 @@
                 loginFeedback.textContent = '';
                 
                 try {
-                    // Update nama di database
                     const { error } = await supabaseClient
                         .from('pegawai')
                         .update({ nama: namaBaru })
@@ -158,7 +159,6 @@
 
                     if (error) throw error;
 
-                    // Simpan data ke session dan lanjutkan
                     sessionStorage.setItem('idPegawai', idPegawai);
                     sessionStorage.setItem('namaPegawai', namaBaru);
                     window.location.href = 'index.html';
