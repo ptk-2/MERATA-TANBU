@@ -93,6 +93,7 @@
                     pegawai:pegawai ( nama, jabatan, sekolah:sekolah (nama_sekolah) ),
                     lowongan:kekurangan_pegawai ( jabatan, sekolah:sekolah (nama_sekolah) )
                 `)
+                .eq('status_aplikasi', 'Menunggu Persetujuan') // HANYA TAMPILKAN YANG MENUNGGU PERSETUJUAN
                 .order('id', { ascending: false });
 
             if (error) {
@@ -107,7 +108,6 @@
 
             tableBody.innerHTML = ''; 
             data.forEach(item => {
-                const statusBadge = item.status_aplikasi === 'Menunggu Persetujuan' ? 'bg-warning' : (item.status_aplikasi === 'Disetujui' ? 'bg-success' : 'bg-danger');
                 const row = `
                     <tr>
                         <td><strong>${item.pegawai.nama}</strong></td>
@@ -121,10 +121,13 @@
                             <a href="${item.url_surat_permohonan || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Permohonan"><i class="bi bi-file-earmark-pdf"></i></a>
                             <a href="${item.url_surat_rekomendasi || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Rekomendasi"><i class="bi bi-file-earmark-pdf"></i></a>
                         </td>
-                        <td class="text-center"><span class="badge ${statusBadge}">${item.status_aplikasi}</span></td>
+                        <td class="text-center"><span class="badge bg-warning">${item.status_aplikasi}</span></td>
                         <td class="text-center">
-                            <button class="btn btn-success btn-sm btn-approve" data-id="${item.id}" title="Setujui"><i class="bi bi-check-lg"></i></button>
-                            <button class="btn btn-danger btn-sm btn-reject" data-id="${item.id}" title="Tolak"><i class="bi bi-x-lg"></i></button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-success btn-sm btn-approve" data-id="${item.id}" title="Setujui"><i class="bi bi-check-lg"></i></button>
+                                <button class="btn btn-danger btn-sm btn-reject" data-id="${item.id}" title="Tolak"><i class="bi bi-x-lg"></i></button>
+                                <button class="btn btn-secondary btn-sm btn-delete" data-id="${item.id}" title="Hapus Permanen"><i class="bi bi-trash3-fill"></i></button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -132,37 +135,36 @@
             });
         }
         
-        // --- BLOK KODE BARU UNTUK FUNGSI TOMBOL ---
         tableBody.addEventListener('click', async (event) => {
             const target = event.target.closest('button');
+            if (!target) return;
 
-            // Fungsi untuk update status
-            const updateStatus = async (id, newStatus) => {
-                const { error } = await supabaseClient
-                    .from('aplikasi_penempatan')
-                    .update({ status_aplikasi: newStatus })
-                    .eq('id', id);
+            const id = target.dataset.id;
 
-                if (error) {
-                    alert(`Gagal memperbarui status: ${error.message}`);
-                } else {
-                    getPermohonan(); // Muat ulang data tabel
-                }
-            };
-
-            // Cek jika tombol Setujui yang diklik
-            if (target && target.classList.contains('btn-approve')) {
-                const id = target.dataset.id;
-                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini?')) {
-                    await updateStatus(id, 'Disetujui');
+            // FUNGSI SETUJUI
+            if (target.classList.contains('btn-approve')) {
+                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini? Data akan dipindahkan ke Rekap Dasbor.')) {
+                    const { error } = await supabaseClient.from('aplikasi_penempatan').update({ status_aplikasi: 'Disetujui' }).eq('id', id);
+                    if (error) alert(`Gagal: ${error.message}`);
+                    else getPermohonan();
                 }
             }
 
-            // Cek jika tombol Tolak yang diklik
-            if (target && target.classList.contains('btn-reject')) {
-                const id = target.dataset.id;
-                if (confirm('Anda yakin ingin MENOLAK permohonan ini?')) {
-                    await updateStatus(id, 'Ditolak');
+            // FUNGSI TOLAK
+            if (target.classList.contains('btn-reject')) {
+                if (confirm('Anda yakin ingin MENOLAK permohonan ini? Data akan dipindahkan ke Rekap Dasbor.')) {
+                    const { error } = await supabaseClient.from('aplikasi_penempatan').update({ status_aplikasi: 'Ditolak' }).eq('id', id);
+                    if (error) alert(`Gagal: ${error.message}`);
+                    else getPermohonan();
+                }
+            }
+            
+            // FUNGSI HAPUS (BARU)
+            if (target.classList.contains('btn-delete')) {
+                if (confirm('PERINGATAN: Anda akan MENGHAPUS PERMANEN permohonan ini. Aksi ini tidak bisa dibatalkan. Lanjutkan?')) {
+                    const { error } = await supabaseClient.from('aplikasi_penempatan').delete().eq('id', id);
+                    if (error) alert(`Gagal menghapus: ${error.message}`);
+                    else getPermohonan();
                 }
             }
         });

@@ -64,12 +64,23 @@
         </div>
 
         <div class="card mt-4">
-            <div class="card-header"><h4><i class="bi bi-check2-circle"></i> Daftar Persetujuan Terbaru</h4></div>
+            <div class="card-header">
+                <h4><i class="bi bi-clipboard2-data"></i> <span id="rekap-title">Rekap Daftar Pemohon</span></h4>
+            </div>
             <div class="card-body">
-                <table class="table table-hover">
-                    <thead><tr><th>Nama Pegawai</th><th>Sekolah Pilihan</th><th>Waktu Memilih</th><th class="text-center">Aksi</th></tr></thead>
-                    <tbody id="persetujuan-ringkasan-body">
-                        <tr><td colspan="4" class="text-center text-muted">Memuat data...</td></tr>
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nama Pegawai</th>
+                            <th>Sekolah Asal</th>
+                            <th>Sekolah Pilihan</th>
+                            <th>Waktu Memilih</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rekap-body">
+                        <tr><td colspan="6" class="text-center text-muted">Memuat data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -86,68 +97,115 @@
             alert('Anda harus login terlebih dahulu untuk mengakses halaman ini!');
             window.location.href = 'login.html';
         }
-
+        
         const supabaseUrl = 'https://yghywsrqhgbaryqgdxkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnaHl3c3JxaGdiYXJ5cWdkeGt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNDM3MDgsImV4cCI6MjA3NDgxOTcwOH0.4lPp4zgqoTIFbOXZCtMRkgS8PzNnyDfTg5W0vsdwpR8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let activePeriode = null; // Definisikan di scope yang lebih luas
 
         async function updateDashboardStats() {
             const kekuranganElement = document.getElementById('total-kekurangan');
             const kelebihanElement = document.getElementById('total-kelebihan');
             const persetujuanElement = document.getElementById('total-persetujuan');
 
-            // 1. Cari periode yang aktif
-            const { data: activePeriode } = await supabaseClient.from('periode_pemetaan').select('id').eq('status', 'Aktif').single();
+            const { data: periodeData, error: periodeError } = await supabaseClient.from('periode_pemetaan').select('*').eq('status', 'Aktif').single();
+            
+            if (periodeData) {
+                activePeriode = periodeData; // Simpan data periode aktif
+                document.getElementById('rekap-title').textContent = `Rekap Daftar Pemohon (${activePeriode.nama_periode})`;
 
-            if (activePeriode) {
-                // 2. Hitung total KEKURANGAN pegawai
                 const { data: kekuranganData } = await supabaseClient.from('kekurangan_pegawai').select('jumlah_dibutuhkan').eq('id_periode', activePeriode.id);
                 const totalKekurangan = kekuranganData ? kekuranganData.reduce((sum, item) => sum + item.jumlah_dibutuhkan, 0) : 0;
                 kekuranganElement.textContent = `${totalKekurangan} Pegawai`;
 
-                // 3. Hitung total KELEBIHAN pegawai
                 const { data: kelebihanData } = await supabaseClient.from('kelebihan_pegawai').select('jumlah_kelebihan').eq('id_periode', activePeriode.id);
                 const totalKelebihan = kelebihanData ? kelebihanData.reduce((sum, item) => sum + item.jumlah_kelebihan, 0) : 0;
                 kelebihanElement.textContent = `${totalKelebihan} Pegawai`;
+                
+                loadRekapPemohon(); // Panggil fungsi rekap setelah periode ditemukan
             } else {
                 kekuranganElement.textContent = '0 Pegawai';
                 kelebihanElement.textContent = '0 Pegawai';
+                document.getElementById('rekap-title').textContent = `Rekap Daftar Pemohon (Tidak Ada Periode Aktif)`;
+                document.getElementById('rekap-body').innerHTML = `<tr><td colspan="6" class="text-center">Tidak ada periode aktif yang dipilih.</td></tr>`;
             }
 
-            // 4. Hitung total PERSETUJUAN yang menunggu
             const { count: persetujuanCount } = await supabaseClient.from('aplikasi_penempatan').select('*', { count: 'exact', head: true }).eq('status_aplikasi', 'Menunggu Persetujuan');
             persetujuanElement.textContent = `${persetujuanCount || 0} Permohonan`;
         }
 
-        async function loadRingkasanPersetujuan() {
-            const tableBody = document.getElementById('persetujuan-ringkasan-body');
-            const { data, error } = await supabaseClient.from('aplikasi_penempatan')
-                .select(`created_at, pegawai(nama), lowongan:kekurangan_pegawai(sekolah(nama_sekolah))`)
-                .eq('status_aplikasi', 'Menunggu Persetujuan')
-                .limit(3).order('created_at', { ascending: false });
+        async function loadRekapPemohon() {
+            if (!activePeriode) return;
+
+            const tableBody = document.getElementById('rekap-body');
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center">Memuat data rekap...</td></tr>`;
+
+            const { data, error } = await supabaseClient
+                .from('aplikasi_penempatan')
+                .select(`
+                    id,
+                    created_at,
+                    status_aplikasi,
+                    pegawai:pegawai ( nama, sekolah:sekolah (nama_sekolah) ),
+                    lowongan:kekurangan_pegawai ( sekolah:sekolah (nama_sekolah) )
+                `)
+                .eq('id_periode', activePeriode.id)
+                .neq('status_aplikasi', 'Menunggu Persetujuan') // Hanya tampilkan yang Disetujui atau Ditolak
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Gagal memuat rekap.</td></tr>`;
+                console.error(error);
+                return;
+            }
 
             if(data && data.length > 0) {
                 tableBody.innerHTML = '';
                 data.forEach(item => {
+                    const statusBadge = item.status_aplikasi === 'Disetujui' ? 'bg-success' : 'bg-danger';
                     const row = `
                         <tr>
                             <td>${item.pegawai.nama}</td>
+                            <td>${item.pegawai.sekolah.nama_sekolah}</td>
                             <td>${item.lowongan.sekolah.nama_sekolah}</td>
-                            <td>${new Date(item.created_at).toLocaleString('id-ID')}</td>
-                            <td class="text-center"><a href="persetujuan.html" class="btn btn-primary btn-sm">Proses</a></td>
+                            <td>${new Date(item.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                            <td class="text-center"><span class="badge ${statusBadge}">${item.status_aplikasi}</span></td>
+                            <td class="text-center">
+                                <button class="btn btn-secondary btn-sm btn-reprocess" data-id="${item.id}" title="Ubah Status ke Proses">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Proses Ulang
+                                </button>
+                            </td>
                         </tr>
                     `;
                     tableBody.innerHTML += row;
                 });
             } else {
-                tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data persetujuan.</td></tr>';
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Belum ada data pemohon yang disetujui atau ditolak pada periode ini.</td></tr>`;
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            updateDashboardStats();
-            loadRingkasanPersetujuan();
+        document.getElementById('rekap-body').addEventListener('click', async (event) => {
+            const target = event.target.closest('.btn-reprocess');
+            if (target) {
+                const id = target.dataset.id;
+                if (confirm('Anda yakin ingin mengembalikan status permohonan ini ke "Menunggu Persetujuan"? Data akan pindah ke halaman Persetujuan.')) {
+                    const { error } = await supabaseClient
+                        .from('aplikasi_penempatan')
+                        .update({ status_aplikasi: 'Menunggu Persetujuan' })
+                        .eq('id', id);
+
+                    if (error) {
+                        alert('Gagal mengubah status!');
+                    } else {
+                        // Muat ulang semua data di dasbor
+                        updateDashboardStats();
+                    }
+                }
+            }
         });
+
+        document.addEventListener('DOMContentLoaded', updateDashboardStats);
 
         document.getElementById('logout-button').addEventListener('click', function(event) {
             event.preventDefault(); 
