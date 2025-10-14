@@ -98,6 +98,7 @@
                         <div class="mb-3"><label for="tmt-sk" class="form-label">TMT SK PPPK</label><input type="date" class="form-control" id="tmt-sk" required></div>
                         <div class="mb-3"><label for="surat-permohonan" class="form-label">Upload Surat Permohonan (PDF)</label><input class="form-control" type="file" id="surat-permohonan" accept=".pdf" required></div>
                         <div class="mb-3"><label for="surat-rekomendasi" class="form-label">Upload Surat Rekomendasi Menerima (PDF)</label><input class="form-control" type="file" id="surat-rekomendasi" accept=".pdf" required></div>
+                        <div class="mb-3"><label for="surat-pernyataan" class="form-label">Upload Surat Pernyataan Tidak Menuntut Sertifikasi (Ber-Meterai) (PDF)</label><input class="form-control" type="file" id="surat-pernyataan" accept=".pdf" required></div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -267,7 +268,6 @@
 
         permohonanForm.addEventListener('submit', async function (event) {
             event.preventDefault();
-            console.log("--- Memulai Proses Pengiriman Permohonan ---");
             const btnKirim = document.getElementById('btn-kirim-permohonan');
             const spinner = btnKirim.querySelector('.spinner-border');
             const idLowongan = document.getElementById('id-lowongan-input').value;
@@ -275,26 +275,30 @@
             const tmtSk = document.getElementById('tmt-sk').value;
             const filePermohonan = document.getElementById('surat-permohonan').files[0];
             const fileRekomendasi = document.getElementById('surat-rekomendasi').files[0];
+            const filePernyataan = document.getElementById('surat-pernyataan').files[0];
 
-            console.log("ID Lowongan:", idLowongan, "ID Pegawai:", idPegawai, "TMT SK:", tmtSk);
             if (!idPegawai) { alert("Error: ID Pegawai tidak ditemukan. Silakan login kembali."); return; }
-            if (!filePermohonan || !fileRekomendasi) { alert('Harap lengkapi semua file.'); return; }
+            if (!filePermohonan || !fileRekomendasi || !filePernyataan) { alert('Harap lengkapi semua file yang wajib diisi.'); return; }
             
             btnKirim.disabled = true;
             spinner.style.display = 'inline-block';
             try {
                 const bucketName = 'dokumen-aplikasi-MERATA';
-                console.log("Mulai mengunggah file...");
+
                 const filePath1 = `${idPegawai}/permohonan-${Date.now()}`;
                 let { error: uploadError1 } = await supabaseClient.storage.from(bucketName).upload(filePath1, filePermohonan);
                 if (uploadError1) throw uploadError1;
                 const { data: urlData1 } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath1);
-                console.log("URL File 1:", urlData1.publicUrl);
+                
                 const filePath2 = `${idPegawai}/rekomendasi-${Date.now()}`;
                 let { error: uploadError2 } = await supabaseClient.storage.from(bucketName).upload(filePath2, fileRekomendasi);
                 if (uploadError2) throw uploadError2;
                 const { data: urlData2 } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath2);
-                console.log("URL File 2:", urlData2.publicUrl);
+                
+                const filePath3 = `${idPegawai}/pernyataan-sertifikasi-${Date.now()}`;
+                let { error: uploadError3 } = await supabaseClient.storage.from(bucketName).upload(filePath3, filePernyataan);
+                if (uploadError3) throw uploadError3;
+                const { data: urlData3 } = supabaseClient.storage.from(bucketName).getPublicUrl(filePath3);
                 
                 const dataToInsert = { 
                     id_pegawai: parseInt(idPegawai, 10),
@@ -302,10 +306,10 @@
                     tmt_sk: tmtSk,
                     url_surat_permohonan: urlData1.publicUrl,
                     url_surat_rekomendasi: urlData2.publicUrl,
+                    url_surat_pernyataan_sertifikasi: urlData3.publicUrl,
                     id_periode: activePeriode.id,
-                    status_aplikasi: 'Menunggu Persetujuan' // <-- TAMBAHKAN BARIS INI
+                    status_aplikasi: 'Menunggu Persetujuan'
                 };
-                console.log("Data yang akan dikirim ke Supabase:", dataToInsert);
                 
                 const { error: insertError } = await supabaseClient.from('aplikasi_penempatan').insert([dataToInsert]);
                 if (insertError) throw insertError;
@@ -315,7 +319,7 @@
                 sessionStorage.clear();
                 window.location.href = 'portal.html';
             } catch (error) {
-                console.error("--- DETAIL ERROR DARI SUPABASE ---", error);
+                console.error("Gagal mengirim permohonan:", error);
                 alert(`Gagal mengirim permohonan: ${error.message}`);
             } finally {
                 btnKirim.disabled = false;
@@ -331,7 +335,7 @@
                 window.location.href = 'portal.html';
                 return;
             }
-            // --- BAGIAN YANG DIPERBAIKI ---
+
             loginGate.style.display = 'none';
             mainDashboard.style.display = 'block';
             
