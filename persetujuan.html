@@ -40,7 +40,7 @@
         
         <div class="card">
             <div class="card-header">
-                Daftar Permohonan Masuk
+                Daftar Permohonan Masuk (Status: Menunggu Persetujuan)
             </div>
             <div class="card-body">
                 <table class="table table-hover align-middle">
@@ -68,9 +68,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Pengecekan status login admin
+        // Pengecekan status login admin (penting untuk halaman admin)
         if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
-            alert('Anda harus login terlebih dahulu untuk mengakses halaman ini!');
+            alert('Anda harus login terlebih dahulu!');
             window.location.href = 'login.html';
         }
 
@@ -83,6 +83,7 @@
         async function getPermohonan() {
             tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Memuat data permohonan...</td></tr>';
             
+            // DIUBAH: Menambahkan url_surat_pernyataan_sertifikasi ke dalam select
             const { data, error } = await supabaseClient
                 .from('aplikasi_penempatan')
                 .select(`
@@ -90,10 +91,11 @@
                     status_aplikasi,
                     url_surat_permohonan,
                     url_surat_rekomendasi,
+                    url_surat_pernyataan_sertifikasi, 
                     pegawai:pegawai ( nama, jabatan, sekolah:sekolah (nama_sekolah) ),
                     lowongan:kekurangan_pegawai ( jabatan, sekolah:sekolah (nama_sekolah) )
                 `)
-                .eq('status_aplikasi', 'Menunggu Persetujuan') // HANYA TAMPILKAN YANG MENUNGGU PERSETUJUAN
+                .eq('status_aplikasi', 'Menunggu Persetujuan') 
                 .order('id', { ascending: false });
 
             if (error) {
@@ -118,8 +120,9 @@
                             <div class="text-muted">${item.lowongan.sekolah.nama_sekolah}</div>
                         </td>
                         <td class="text-center">
-                            <a href="${item.url_surat_permohonan || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Permohonan"><i class="bi bi-file-earmark-pdf"></i></a>
-                            <a href="${item.url_surat_rekomendasi || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Rekomendasi"><i class="bi bi-file-earmark-pdf"></i></a>
+                            <a href="${item.url_surat_permohonan || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Permohonan"><i class="bi bi-file-earmark-pdf"></i> 1</a>
+                            <a href="${item.url_surat_rekomendasi || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Rekomendasi"><i class="bi bi-file-earmark-pdf"></i> 2</a>
+                            <a href="${item.url_surat_pernyataan_sertifikasi || '#'}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Lihat Surat Pernyataan Sertifikasi"><i class="bi bi-file-earmark-pdf"></i> 3</a>
                         </td>
                         <td class="text-center"><span class="badge bg-warning">${item.status_aplikasi}</span></td>
                         <td class="text-center">
@@ -138,33 +141,24 @@
         tableBody.addEventListener('click', async (event) => {
             const target = event.target.closest('button');
             if (!target) return;
-
             const id = target.dataset.id;
 
-            // FUNGSI SETUJUI
             if (target.classList.contains('btn-approve')) {
-                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini? Data akan dipindahkan ke Rekap Dasbor.')) {
+                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini?')) {
                     const { error } = await supabaseClient.from('aplikasi_penempatan').update({ status_aplikasi: 'Disetujui' }).eq('id', id);
-                    if (error) alert(`Gagal: ${error.message}`);
-                    else getPermohonan();
+                    if (error) alert(`Gagal: ${error.message}`); else getPermohonan();
                 }
             }
-
-            // FUNGSI TOLAK
             if (target.classList.contains('btn-reject')) {
-                if (confirm('Anda yakin ingin MENOLAK permohonan ini? Data akan dipindahkan ke Rekap Dasbor.')) {
+                if (confirm('Anda yakin ingin MENOLAK permohonan ini?')) {
                     const { error } = await supabaseClient.from('aplikasi_penempatan').update({ status_aplikasi: 'Ditolak' }).eq('id', id);
-                    if (error) alert(`Gagal: ${error.message}`);
-                    else getPermohonan();
+                    if (error) alert(`Gagal: ${error.message}`); else getPermohonan();
                 }
             }
-            
-            // FUNGSI HAPUS (BARU)
             if (target.classList.contains('btn-delete')) {
-                if (confirm('PERINGATAN: Anda akan MENGHAPUS PERMANEN permohonan ini. Aksi ini tidak bisa dibatalkan. Lanjutkan?')) {
+                if (confirm('PERINGATAN: Hapus permanen permohonan ini?')) {
                     const { error } = await supabaseClient.from('aplikasi_penempatan').delete().eq('id', id);
-                    if (error) alert(`Gagal menghapus: ${error.message}`);
-                    else getPermohonan();
+                    if (error) alert(`Gagal menghapus: ${error.message}`); else getPermohonan();
                 }
             }
         });
