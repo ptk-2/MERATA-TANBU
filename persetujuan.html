@@ -144,9 +144,14 @@
             const id = target.dataset.id;
 
             if (target.classList.contains('btn-approve')) {
-                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini?')) {
-                    const { error } = await supabaseClient.from('aplikasi_penempatan').update({ status_aplikasi: 'Disetujui' }).eq('id', id);
-                    if (error) alert(`Gagal: ${error.message}`); else getPermohonan();
+                if (confirm('Anda yakin ingin MENYETUJUI permohonan ini? Jumlah lowongan akan otomatis berkurang.')) {
+                    const { error } = await supabaseClient.rpc('approve_application', { application_id: id });
+                    if (error) {
+                        alert(`Gagal: ${error.message}`);
+                    } else {
+                        alert('Permohonan berhasil disetujui! Halaman akan dialihkan ke dashboard untuk melihat data terbaru.');
+                        window.location.href = 'admin.html';
+                    }
                 }
             }
             if (target.classList.contains('btn-reject')) {
